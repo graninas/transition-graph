@@ -19,6 +19,8 @@ type Event = String
 data TransitionF lang b o u
   = Backable    Event (Graph lang b o) u
   | ForwardOnly Event (Graph lang b o) u
+
+  -- AutoBakc is not yet investigated.
   | AutoBack    Event (Graph lang b o) u
 
 type Transition lang b o u = Free (TransitionF lang b o) u
