@@ -14,19 +14,19 @@ travel3Graph :: AGGraph () ()
 travel3Graph = graph $
   with location3
     <~> on "forward" (leaf nop)
-    <~> on "list" (leaf list)
+    <~> on "list"    (leaf list)
 
 travel2Graph :: AGGraph () ()
 travel2Graph = graph $
   with location2
     <~> on "forward" travel3Graph
-    <~> on "list" (leaf list)
+    >~< on "list"    (leaf list)
 
 travel1Graph :: AGGraph () ()
 travel1Graph = graph $
   with location1
     <~> on "forward" travel2Graph
-    <~> on "list" (leaf list)
+    >~< on "list"    (leaf list)
 
 location1 :: AdventureL ()
 location1 = location "West of House\n\
