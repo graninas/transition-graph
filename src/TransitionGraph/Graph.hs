@@ -21,10 +21,14 @@ data TransitionF lang b o u
   | ForwardOnly Event (Graph lang b o) u
   | AutoBack    Event (Graph lang b o) u
 
-type Transition lang b o u = Free (TransitionF lang b o) u
+-- This Free monad type is used to hold "list of possible transitions".
+-- Interpreting of it means matching event with events in transitions.
+-- This is definitely an overkill. Using Map will be more effective and
+-- intuitive.
+type Transitions lang b o u = Free (TransitionF lang b o) u
 
 data GraphF lang i o b
-  = GraphF1 (i -> lang b) (Transition lang b o ())
+  = GraphF1 (i -> lang b) (Transitions lang b o ())
 
 newtype Graph lang i o
   = Graph (Exists (GraphF lang i o))
@@ -47,14 +51,14 @@ infixl 3 >~<
 with1
   :: (Monad lang)
   => (i -> lang b)
-  -> Transition lang b o ()
+  -> Transitions lang b o ()
   -> Graph lang i o
 with1 flowF1 table = Graph $ mkExists $ GraphF1 flowF1 table
 
 with
   :: (Monad lang)
   => lang b
-  -> Transition lang b o ()
+  -> Transitions lang b o ()
   -> Graph lang () o
 with flow = with1 (const flow)
 
@@ -97,17 +101,17 @@ transable transType part (TransitionTemplate e g) = part . transed
 backable
   :: Event
   -> Graph lang i o
-  -> Transition lang i o ()
+  -> Transitions lang i o ()
 backable e g = liftF $ Backable e g ()
 
 forwardOnly
   :: Event
   -> Graph lang i o
-  -> Transition lang i o ()
+  -> Transitions lang i o ()
 forwardOnly e g = liftF $ ForwardOnly e g ()
 
 autoBack
   :: Event
   -> Graph lang i o
-  -> Transition lang i o ()
+  -> Transitions lang i o ()
 autoBack e g = liftF $ AutoBack e g ()

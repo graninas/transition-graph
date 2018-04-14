@@ -40,38 +40,42 @@ getLang
   -> lang b
 getLang input (GraphF1 flowF _) = flowF input
 
-makeTransition'
+type ThisBackable = Bool
+
+runTransition'
   :: (Monad m, Monad lang)
   => Runtime lang m
-  -> Bool
+  -> ThisBackable
   -> i
   -> GraphF lang i o b
   -> m TransitionResult
-makeTransition' runtime backable i3 g3 = do
+runTransition' runtime backable i3 g3 = do
   let f3 = getLang i3 g3
-  transitionResult <- makeTransition runtime f3 g3
+  transitionResult <- runTransition runtime f3 g3
   case transitionResult of
     Done          -> pure Done
-    FallbackRerun -> makeTransition' runtime backable i3 g3
+    FallbackRerun -> runTransition' runtime backable i3 g3
     Fallback      ->
       if backable
       then pure FallbackRerun
       else pure Done -- throw "No fallback"
 
-makeTransition
+runTransition
   :: (Monad m, Monad lang)
   => Runtime lang m
   -> lang b
   -> GraphF lang i o b
   -> m TransitionResult
-makeTransition runtime f2 g2 = do
-  flowResult <- runLang' runtime f2
-  case flowResult of
+runTransition runtime f2 g2 = do
+  langResult <- runLang' runtime f2
+  case langResult of
     Backward      -> pure Fallback
-    Forward e2 i3 -> case runTransition e2 g2 of
-      Nop                          -> pure Done
-      BackTrack    g3@(Graph g3Ex) -> runExists (makeTransition' runtime True i3) g3Ex
-      ForwardTrack g3@(Graph g3Ex) -> runExists (makeTransition' runtime False i3) g3Ex
+    Forward e2 i3 -> case matchTransition e2 g2 of
+      Nop                           -> pure Done
+      BackTrack     g3@(Graph g3Ex) -> runExists (runTransition' runtime True i3) g3Ex
+      ForwardTrack  g3@(Graph g3Ex) -> runExists (runTransition' runtime False i3) g3Ex
+      AutoBackTrack g3@(Graph g3Ex) -> do
+        runExists (runTransition' runtime True i3) g3Ex
 
 runGraph
   :: (Monad m, Monad lang)
@@ -79,5 +83,5 @@ runGraph
   -> Graph lang () ()
   -> m ()
 runGraph runtime (Graph ex) = do
-  _ <- runExists (makeTransition' runtime False ()) ex
+  _ <- runExists (runTransition' runtime False ()) ex
   pure ()
