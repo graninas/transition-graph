@@ -12,7 +12,7 @@ import           Lib
 travel3Graph :: Graph IO () ()
 travel3Graph = graph $
   with (print "3")
-    <~> on "forward" (leaf (return ()))
+    >~< on "forward" (leaf (return ()))
 
 travel2Graph :: Graph IO () ()
 travel2Graph = graph $
@@ -22,7 +22,7 @@ travel2Graph = graph $
 travel1Graph :: Graph IO () ()
 travel1Graph = graph $
   with (print "1")
-    <~> on "forward" travel2Graph
+    >~< on "forward" travel2Graph
 
 ioRunner :: IO output -> IO (Event, output)
 ioRunner act = act >>= \o -> pure ("forward", o)

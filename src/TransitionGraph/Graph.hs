@@ -19,8 +19,6 @@ type Event = String
 data TransitionF lang b o u
   = Backable    Event (Graph lang b o) u
   | ForwardOnly Event (Graph lang b o) u
-
-  -- AutoBakc is not yet investigated.
   | AutoBack    Event (Graph lang b o) u
 
 type Transition lang b o u = Free (TransitionF lang b o) u
@@ -31,8 +29,7 @@ data GraphF lang i o b
 newtype Graph lang i o
   = Graph (Exists (GraphF lang i o))
 
-type PartialTrans lang i o b = Transition lang b o () -> Graph lang i o
-data Event' lang i o = Event' Event (Graph lang i o)
+data TransitionTemplate lang i o = TransitionTemplate Event (Graph lang i o)
 
 instance Functor (TransitionF lang b o) where
   fmap f (Backable    e g next) = Backable    e g (f next)
@@ -78,8 +75,8 @@ graph part = part $ pure ()
 on
   :: Event
   -> Graph lang i o
-  -> Event' lang i o
-on = Event'
+  -> TransitionTemplate lang i o
+on = TransitionTemplate
 
 transable
   :: (Event
@@ -87,11 +84,11 @@ transable
       -> Free (TransitionF lang i o) b
       )
   -> (Free (TransitionF lang i o) b -> c)
-  -> Event' lang i o
+  -> TransitionTemplate lang i o
   -> Free (TransitionF lang i o) a
   -> c
 
-transable transType part (Event' e g) = part . transed
+transable transType part (TransitionTemplate e g) = part . transed
   where
     transed prevTrans = do
       prevTrans
