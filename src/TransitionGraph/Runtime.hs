@@ -15,8 +15,10 @@ import           Data.Exists
 import           TransitionGraph.Graph
 import           TransitionGraph.Interpreter
 
+type Runner lang m = forall a. lang (LangOutput a) -> m (LangOutput a)
+
 data Runtime lang m = Runtime
-  { runLang_     :: forall a. lang (LangOutput a) -> m (LangOutput a)
+  { runLang_     :: Runner lang m
   , isBackEvent_ :: Event -> Bool
   }
 
@@ -106,6 +108,14 @@ runTransition runtime autoReturn f2 g2 = do
           runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
         AutoBack    g3@(Graph g3Ex) ->
           runExists (runTransition' runtime thisBackable    thisAutoReturn    i3) g3Ex
+
+runGraph'
+  :: (Monad m, Monad lang)
+  => Runner lang m
+  -> (Event -> Bool)
+  -> Graph lang () ()
+  -> m ()
+runGraph' runner isBackEv g = runGraph (Runtime runner isBackEv) g
 
 runGraph
   :: (Monad m, Monad lang)
