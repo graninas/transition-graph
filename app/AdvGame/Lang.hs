@@ -15,7 +15,8 @@ import           Data.Exists
 type Item = String
 
 data AdventureLF a
-  = PrintS String a
+  = GetUserInput (String -> a)
+  | PrintS String a
   | Put Item a
   | Drop Item a
   | List a
@@ -23,10 +24,14 @@ data AdventureLF a
 type AdventureL = Free AdventureLF
 
 instance Functor AdventureLF where
+  fmap f (GetUserInput nextF) = GetUserInput (f . nextF)
   fmap f (PrintS s next)  = PrintS s (f next)
   fmap f (Put    s next)  = Put    s (f next)
   fmap f (Drop   s next)  = Drop   s (f next)
   fmap f (List     next)  = List     (f next)
+
+getUserInput :: AdventureL String
+getUserInput = liftF $ GetUserInput id
 
 printS :: String -> AdventureL ()
 printS s = liftF $ PrintS s ()
@@ -39,6 +44,3 @@ drop s = liftF $ Drop s ()
 
 list :: AdventureL ()
 list = liftF $ List ()
-
-nop :: AdventureL ()
-nop = pure ()

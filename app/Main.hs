@@ -10,23 +10,32 @@ import           AdvGame.AdvGameRuntime
 
 type AGGraph a b = Lib.Graph AdventureL a b
 
+getInput :: AdventureL (Event, ())
+getInput = do
+  userInput <- getUserInput
+  pure (userInput, ())
+
+nop :: AdventureL (Event, ())
+nop = pure ("", ())
+
+
 travel3Graph :: AGGraph () ()
 travel3Graph = graph $
-  with location3
+  with (location1 >> getInput)
     <~> on "forward" (leaf nop)
-    <~> on "list"    (leaf list)
+    -- >~< on "list"    (leaf list)
 
 travel2Graph :: AGGraph () ()
 travel2Graph = graph $
-  with location2
+  with (location1 >> getInput)
     <~> on "forward" travel3Graph
-    >~< on "list"    (leaf list)
+    -- >~< on "list"    (leaf list)
 
 travel1Graph :: AGGraph () ()
 travel1Graph = graph $
-  with location1
+  with (location1 >> getInput)
     <~> on "forward" travel2Graph
-    >~< on "list"    (leaf list)
+    -- >~< on "list"    (leaf list)
 
 location1 :: AdventureL ()
 location1 = location "West of House\n\

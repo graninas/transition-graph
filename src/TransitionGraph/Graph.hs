@@ -14,7 +14,10 @@ import qualified Control.Monad.Trans.State as ST
 
 import           Data.Exists
 
+-- TODO: parametrize this
 type Event = String
+
+type LangOutput a = (Event, a)
 
 data TransitionDef graph
   = Backable    graph
@@ -32,7 +35,7 @@ data TransitionF lang b o next
 type Transitions lang b o u = Free (TransitionF lang b o) u
 
 data GraphF lang i o b
-  = GraphF1 (i -> lang b) (Transitions lang b o ())
+  = GraphF1 (i -> lang (LangOutput b)) (Transitions lang b o ())
 
 newtype Graph lang i o
   = Graph (Exists (GraphF lang i o))
@@ -52,27 +55,27 @@ infixl 3 >~<
 
 with1
   :: (Monad lang)
-  => (i -> lang b)
+  => (i -> lang (LangOutput b))
   -> Transitions lang b o ()
   -> Graph lang i o
 with1 flowF1 table = Graph $ mkExists $ GraphF1 flowF1 table
 
 with
   :: (Monad lang)
-  => lang b
+  => lang (LangOutput b)
   -> Transitions lang b o ()
   -> Graph lang () o
 with flow = with1 (const flow)
 
 leaf1
   :: (Monad lang)
-  => (i -> lang ())
+  => (i -> lang (LangOutput ()))
   -> Graph lang i ()
 leaf1 flowF1 = with1 flowF1 (pure ())
 
 leaf
   :: (Monad lang)
-  => lang ()
+  => lang (LangOutput ())
   -> Graph lang () ()
 leaf = leaf1 . const
 
