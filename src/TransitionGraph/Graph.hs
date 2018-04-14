@@ -26,8 +26,7 @@ data TransitionF lang b o u
 type Transition lang b o u = Free (TransitionF lang b o) u
 
 data GraphF lang i o b
-  = GraphF  (     lang b) (Transition lang b o ())
-  | GraphF1 (i -> lang b) (Transition lang b o ())
+  = GraphF1 (i -> lang b) (Transition lang b o ())
 
 newtype Graph lang i o
   = Graph (Exists (GraphF lang i o))
@@ -48,13 +47,6 @@ infixl 3 <~>
 infixl 3 ~>
 infixl 3 >~<
 
-with
-  :: (Monad lang)
-  => lang b
-  -> Transition lang b o ()
-  -> Graph lang () o
-with flow table = Graph $ mkExists $ GraphF flow table
-
 with1
   :: (Monad lang)
   => (i -> lang b)
@@ -62,17 +54,24 @@ with1
   -> Graph lang i o
 with1 flowF1 table = Graph $ mkExists $ GraphF1 flowF1 table
 
-leaf
+with
   :: (Monad lang)
-  => lang ()
-  -> Graph lang () ()
-leaf flow = with flow (pure ())
+  => lang b
+  -> Transition lang b o ()
+  -> Graph lang () o
+with flow = with1 (const flow)
 
 leaf1
   :: (Monad lang)
   => (i -> lang ())
   -> Graph lang i ()
 leaf1 flowF1 = with1 flowF1 (pure ())
+
+leaf
+  :: (Monad lang)
+  => lang ()
+  -> Graph lang () ()
+leaf = leaf1 . const
 
 graph part = part $ pure ()
 

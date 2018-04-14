@@ -38,7 +38,6 @@ getLang
   :: i
   -> GraphF lang i o b
   -> lang b
-getLang _     (GraphF  flow  _) = flow
 getLang input (GraphF1 flowF _) = flowF input
 
 makeTransition'

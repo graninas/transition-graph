@@ -40,5 +40,4 @@ runTransition
   :: Event
   -> GraphF lang i o b
   -> TrackResult (Graph lang b o)
-runTransition e (GraphF _ t)  = execState (runTransition' e t) Nop
 runTransition e (GraphF1 _ t) = execState (runTransition' e t) Nop
