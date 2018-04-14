@@ -9,7 +9,7 @@ import           Control.Monad.Trans.State (StateT, get, put)
 import           AdvGame.Lang
 import           Lib (Event)
 
-data AdvGameRuntime = AdvGameRuntime
+data Runtime = Runtime
   { _inventory :: Map.Map String Item
   }
 
@@ -33,5 +33,5 @@ interpret (List next)      = do
 run :: AdventureL (Event, s) -> Interpreter (Event, s)
 run l = foldFree interpret l
 
-initialAdvGameRuntime :: AdvGameRuntime
-initialAdvGameRuntime = AdvGameRuntime Map.empty
+initialState :: AdvGameRuntime
+initialState = AdvGameRuntime Map.empty

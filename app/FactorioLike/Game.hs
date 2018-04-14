@@ -7,32 +7,24 @@ import           Control.Monad.Trans.State (runStateT)
 import           Lib (Graph, runGraph')
 import           FactorioLike.Lang
 import           FactorioLike.Runtime
+import           FactorioLike.Products
 
-type FLGraph a b = Graph AdventureL a b
+type Automation a b = Graph Factory a b
 
--- getInput :: AdventureL (Event, ())
--- getInput = do
---   userInput <- getUserInput
---   pure (userInput, ())
---
--- nop :: AdventureL (Event, ())
--- nop = pure ("", ())
-
-
-ironOreDrill :: FactorioLike IronOre
+ironOreDrill :: Factory IronOre
 ironOreDrill = do
   delay 2
   produce 2
 
-conveyorBelt :: FLGraph IronOre ()
+conveyorBelt :: Automation IronOre ()
 conveyorBelt = leaf1 tryPushBelt
 
-game :: FLGraph () ()
+game :: Automation () ()
 game = graph $
   with ironOreDrill
     >~< on "produce" conveyorBelt
 
 runGame :: IO ()
 runGame = do
-  _ <- runStateT (runGraph' run (== "---------") runtime game) initialFactorioLikeGame
+  _ <- runStateT (runGraph' run (== "---------") runtime game) initialState
   pure ()

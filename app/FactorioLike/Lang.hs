@@ -2,45 +2,27 @@
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE RankNTypes                #-}
 
-module AdvGame.Lang where
+module FactorioLike.Lang where
 
-import           Control.Monad             (void, when)
 import           Control.Monad.Free        (Free (..), foldFree, liftF)
-import           Control.Monad.State       (State (..), evalState, execState,
-                                            get, put, runState)
-import qualified Control.Monad.Trans.State as ST
 
-import           Data.Exists
+class Product p where
+  mk :: Int -> p
+  stackSize :: p -> Int
 
-type Item = String
+data FactoryF next where
+  Delay   :: Int                    -> next  -> FactoryF next
+  Produce :: Product p => Int -> (p -> next) -> FactoryF next
 
-data AdventureLF a
-  = GetUserInput (String -> a)
-  | PrintS String a
-  | Put Item a
-  | Drop Item a
-  | List a
+type Factory' = Free FactoryF
 
-type AdventureL = Free AdventureLF
+instance Functor FactoryF where
+  fmap f (Delay   d next)  = Delay   d (f next)
+  fmap f (Produce i nextF) = Produce i (f . nextF)
 
-instance Functor AdventureLF where
-  fmap f (GetUserInput nextF) = GetUserInput (f . nextF)
-  fmap f (PrintS s next)  = PrintS s (f next)
-  fmap f (Put    s next)  = Put    s (f next)
-  fmap f (Drop   s next)  = Drop   s (f next)
-  fmap f (List     next)  = List     (f next)
 
-getUserInput :: AdventureL String
-getUserInput = liftF $ GetUserInput id
+delay :: Int -> Factory ()
+delay i = liftF $ Delay i ()
 
-printS :: String -> AdventureL ()
-printS s = liftF $ PrintS s ()
-
-put :: String -> AdventureL ()
-put s = liftF $ Put s ()
-
-drop :: String -> AdventureL ()
-drop s = liftF $ Drop s ()
-
-list :: AdventureL ()
-list = liftF $ List ()
+produce :: Product p => Int -> Factory p
+produce i = liftF $ Produce i id
