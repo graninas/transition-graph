@@ -78,7 +78,6 @@ graph part = part $ pure ()
 on
   :: Event
   -> Graph lang i o
-  -- -> (forall (lang :: * -> *). Graph lang i o)
   -> Event' lang i o
 on = Event'
 
