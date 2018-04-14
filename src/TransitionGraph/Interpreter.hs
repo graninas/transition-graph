@@ -13,36 +13,24 @@ import           Data.Exists
 
 import           TransitionGraph.Graph
 
-data TrackResult a
-  = BackTrack a
-  | ForwardTrack a
-  | AutoBackTrack a
-  | Nop
+type Interpreter graph b = State (TransitionDef graph) b
 
-type Interpreter a b = State (TrackResult a) b
-
-interpretTransition
+interpret
   :: Event
   -> TransitionF lang b o u
   -> Interpreter (Graph lang b o) u
-interpretTransition e (Backable expectedE g next) = do
-  when (e == expectedE) (put $ BackTrack g)
-  pure next
-interpretTransition e (ForwardOnly expectedE g next) = do
-  when (e == expectedE) (put $ ForwardTrack g)
-  pure next
-interpretTransition e (AutoBack expectedE g next) = do
-  when (e == expectedE) (put $ AutoBackTrack g)
+interpret currentEvent (Transition matchEvent transDef next) = do
+  when (matchEvent == currentEvent) (put transDef)
   pure next
 
 runTransitions
   :: Event
   -> Transitions lang b o s
   -> Interpreter (Graph lang b o) s
-runTransitions e = foldFree (interpretTransition e)
+runTransitions e = foldFree (interpret e)
 
 matchTransition
   :: Event
   -> GraphF lang i o b
-  -> TrackResult (Graph lang b o)
+  -> TransitionDef (Graph lang b o)
 matchTransition e (GraphF1 _ t) = execState (runTransitions e t) Nop

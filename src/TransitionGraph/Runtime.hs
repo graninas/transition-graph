@@ -20,8 +20,8 @@ data Runtime lang m = Runtime
   , isBackEvent_ :: Event -> Bool
   }
 
-data LangResult a b   = Forward a b | Backward
-data TransitionResult = Fallback    | FallbackRerun | Done
+data LangResult a b   = GoForward a b | GoBackward
+data TransitionResult = Fallback      | FallbackRerun | Done
 
 runLang'
   :: (Monad m, Monad lang)
@@ -31,8 +31,8 @@ runLang'
 runLang' (Runtime runLang isBackEvent) flow = do
   (e, i) <- runLang flow
   if isBackEvent e
-    then pure Backward
-    else pure $ Forward e i
+    then pure GoBackward
+    else pure $ GoForward e i
 
 getLang
   :: i
@@ -69,12 +69,12 @@ runTransition
 runTransition runtime f2 g2 = do
   langResult <- runLang' runtime f2
   case langResult of
-    Backward      -> pure Fallback
-    Forward e2 i3 -> case matchTransition e2 g2 of
-      Nop                           -> pure Done
-      BackTrack     g3@(Graph g3Ex) -> runExists (runTransition' runtime True i3) g3Ex
-      ForwardTrack  g3@(Graph g3Ex) -> runExists (runTransition' runtime False i3) g3Ex
-      AutoBackTrack g3@(Graph g3Ex) -> do
+    GoBackward      -> pure Fallback
+    GoForward e2 i3 -> case matchTransition e2 g2 of
+      Nop                         -> pure Done
+      Backable    g3@(Graph g3Ex) -> runExists (runTransition' runtime True  i3) g3Ex
+      ForwardOnly g3@(Graph g3Ex) -> runExists (runTransition' runtime False i3) g3Ex
+      AutoBack    g3@(Graph g3Ex) -> do
         runExists (runTransition' runtime True i3) g3Ex
 
 runGraph

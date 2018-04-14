@@ -16,10 +16,14 @@ import           Data.Exists
 
 type Event = String
 
-data TransitionF lang b o u
-  = Backable    Event (Graph lang b o) u
-  | ForwardOnly Event (Graph lang b o) u
-  | AutoBack    Event (Graph lang b o) u
+data TransitionDef graph
+  = Backable    graph
+  | ForwardOnly graph
+  | AutoBack    graph
+  | Nop
+
+data TransitionF lang b o next
+  = Transition Event (TransitionDef (Graph lang b o)) next
 
 -- This Free monad type is used to hold "list of possible transitions".
 -- Interpreting of it means matching event with events in transitions.
@@ -36,9 +40,7 @@ newtype Graph lang i o
 data TransitionTemplate lang i o = TransitionTemplate Event (Graph lang i o)
 
 instance Functor (TransitionF lang b o) where
-  fmap f (Backable    e g next) = Backable    e g (f next)
-  fmap f (ForwardOnly e g next) = ForwardOnly e g (f next)
-  fmap f (AutoBack    e g next) = AutoBack    e g (f next)
+  fmap f (Transition e def next) = Transition e def (f next)
 
 (<~>) = transable backable
 (~>)  = transable forwardOnly
@@ -102,16 +104,16 @@ backable
   :: Event
   -> Graph lang i o
   -> Transitions lang i o ()
-backable e g = liftF $ Backable e g ()
+backable e g = liftF $ Transition e (Backable g) ()
 
 forwardOnly
   :: Event
   -> Graph lang i o
   -> Transitions lang i o ()
-forwardOnly e g = liftF $ ForwardOnly e g ()
+forwardOnly e g = liftF $ Transition e (ForwardOnly g) ()
 
 autoBack
   :: Event
   -> Graph lang i o
   -> Transitions lang i o ()
-autoBack e g = liftF $ AutoBack e g ()
+autoBack e g = liftF $ Transition e (AutoBack g) ()
