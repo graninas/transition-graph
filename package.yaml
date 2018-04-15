@@ -19,6 +19,24 @@ extra-source-files:
 # common to point users to the README.md file.
 description:         Please see the README on Github at <https://github.com/githubuser/transition-graph#readme>
 
+default-extensions:
+- DeriveFunctor
+- DeriveGeneric
+- FlexibleContexts
+- FlexibleInstances
+- LambdaCase
+- MultiParamTypeClasses
+- NamedFieldPuns
+- NumDecimals
+- OverloadedLabels
+- RankNTypes
+- ScopedTypeVariables
+- TypeFamilies
+- TypeOperators
+- ViewPatterns
+- GADTs
+- FunctionalDependencies
+
 dependencies:
 - base >= 4.7 && < 5
 - free
@@ -27,6 +45,7 @@ dependencies:
 - transformers
 - hspec
 - containers
+- lens
 
 library:
   source-dirs: src

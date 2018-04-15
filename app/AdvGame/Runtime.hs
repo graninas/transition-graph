@@ -1,13 +1,13 @@
 module AdvGame.Runtime where
 
-import           Control.Monad (mapM)
+import           Control.Monad             (mapM)
+import           Control.Monad.Free        (Free (..), foldFree, liftF)
 import           Control.Monad.Trans.Class (lift)
-import qualified Data.Map as Map
-import           Control.Monad.Free    (Free (..), foldFree, liftF)
 import           Control.Monad.Trans.State (StateT, get, put)
+import qualified Data.Map                  as Map
 
 import           AdvGame.Lang
-import           Lib (Event)
+import           Lib                       (Event)
 
 data Runtime = Runtime
   { _inventory :: Map.Map String Item
@@ -20,7 +20,7 @@ interpret (GetUserInput nextF) = do
   lift $ print "> "
   input <- lift getLine
   pure $ nextF input
-interpret (PrintS s next)  = do
+interpret (PrintMessage s next)  = do
   lift $ putStrLn s
   pure next
 interpret (Put s next)     = error "Not implemented."
