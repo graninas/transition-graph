@@ -1,14 +1,16 @@
 module AdvGame.Game where
 
+import qualified Data.Map as Map
 import           Control.Monad.Free    (Free (..), foldFree, liftF)
 import qualified Data.ByteString.Char8 as BS
 import           Control.Monad.Trans.State (runStateT)
 
-import           Lib as Lib
+import           Lib
 import           AdvGame.Lang
-import           AdvGame.AdvGameRuntime
+import           AdvGame.Runtime (run, inititalState)
+import           AdvGame.Object
 
-type AGGraph a b = Lib.Graph AdventureL a b
+type AGGraph a b = Graph AdventureL a b
 
 getInput :: AdventureL (Event, ())
 getInput = do
@@ -25,35 +27,38 @@ travel3Graph = graph $
     <~> on "forward" (leaf nop)
     -- >~< on "list"    (leaf list)
 
-travel2Graph :: AGGraph () ()
-travel2Graph = graph $
-  with (location1 >> getInput)
+mailboxOpened :: AGGraph () ()
+mailboxOpened = graph $
+  with (westOfHouse  >> getInput)
     <~> on "forward" travel3Graph
-    -- >~< on "list"    (leaf list)
 
-travel1Graph :: AGGraph () ()
-travel1Graph = graph $
-  with (location1 >> getInput)
-    <~> on "forward" travel2Graph
-    -- >~< on "list"    (leaf list)
 
-location1 :: AdventureL ()
-location1 = location "West of House\n\
-  \This is an open field west of a white house, with a boarded front door.\n\
-  \There is a small mailbox here.\n\
-  \A rubber mat saying 'Welcome to Zork!' lies by the door."
+data Mailbox = Mailbox
+  { _containerState :: ContainerState
+  , _items          :: [Item]
+  }
 
-location2 :: AdventureL ()
-location2 = location "Another location."
+mkMailbox :: Object Mailbox
+mkMailbox = Object "mailbox" (Mailbox Closed ["leaflet"]) $ Map.fromList
+  [ ("open mailbox",
+  ]
 
-location3 :: AdventureL ()
-location3 = location "Location #3."
+westOfHouse :: AGGraph () ()
+westOfHouse = graph $
+  with westOfHouse'
+    ~> on "open mailbox" mailboxOpened
 
-location :: String -> AdventureL ()
-location = printS
+game :: AGGraph () (Bool, Object )
+game = graph $ pure (True, mkMailbox) --> westOfHouse
+
+westOfHouse' :: AdventureL ()
+westOfHouse' mailbox = do
+  printS "West of House\n"
+--  \This is an open field west of a white house, with a boarded front door.\n\
+--  \There is a small mailbox here.\n\
+--  \A rubber mat saying 'Welcome to Zork!' lies by the door."
 
 runGame :: IO ()
 runGame = do
-  let runtime = Runtime run (== "back")
-  _ <- runStateT (runGraph runtime travel1Graph) initialAdvGameRuntime
-  pure ()
+  let
+  evalStateT (runGraph' run (== "back") game) inititalState

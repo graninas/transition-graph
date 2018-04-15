@@ -9,10 +9,9 @@ import           Control.Monad.Free        (Free (..), foldFree, liftF)
 import           Control.Monad.State       (State (..), evalState, execState,
                                             get, put, runState)
 import qualified Control.Monad.Trans.State as ST
-
 import           Data.Exists
 
-type Item = String
+import           AdvGame.Object
 
 data AdventureLF a
   = GetUserInput (String -> a)

@@ -1,4 +1,4 @@
-module AdvGame.AdvGameRuntime where
+module AdvGame.Runtime where
 
 import           Control.Monad (mapM)
 import           Control.Monad.Trans.Class (lift)
@@ -9,11 +9,11 @@ import           Control.Monad.Trans.State (StateT, get, put)
 import           AdvGame.Lang
 import           Lib (Event)
 
-data AdvGameRuntime = AdvGameRuntime
+data Runtime = Runtime
   { _inventory :: Map.Map String Item
   }
 
-type Interpreter a = StateT AdvGameRuntime IO a
+type Interpreter a = StateT Runtime IO a
 
 interpret :: AdventureLF s -> Interpreter s
 interpret (GetUserInput nextF) = do
@@ -26,12 +26,12 @@ interpret (PrintS s next)  = do
 interpret (Put s next)     = error "Not implemented."
 interpret (Drop s next)    = error "Not implemented."
 interpret (List next)      = do
-  AdvGameRuntime inv <- get
+  Runtime inv <- get
   mapM (lift . putStrLn . snd) $ Map.toList inv
   pure next
 
 run :: AdventureL (Event, s) -> Interpreter (Event, s)
 run l = foldFree interpret l
 
-initialAdvGameRuntime :: AdvGameRuntime
-initialAdvGameRuntime = AdvGameRuntime Map.empty
+inititalState :: Runtime
+inititalState = Runtime Map.empty
