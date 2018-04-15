@@ -62,3 +62,9 @@ onCloseMailboxSuccess _ = printMessage "Closed."
 
 onMailboxCloseFail :: MailboxObj -> AdventureL ()
 onMailboxCloseFail _ = printMessage "Mailbox already closed."
+
+
+
+
+describeObject :: HasDescription obj String => Object obj -> String
+describeObject (Object _ obj _) = obj ^. description

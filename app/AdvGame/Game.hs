@@ -1,7 +1,8 @@
 module AdvGame.Game where
 
+import           Control.Monad             (unless, void, when)
 import           Control.Monad.Free        (Free (..), foldFree, liftF)
-import           Control.Monad.Trans.State (runStateT)
+import           Control.Monad.Trans.State (evalStateT)
 import qualified Data.ByteString.Char8     as BS
 import qualified Data.Map                  as Map
 
@@ -21,32 +22,28 @@ nop :: AdventureL (Event, ())
 nop = pure ("", ())
 
 
-travel3Graph :: AGGraph () ()
-travel3Graph = graph $
-  with (location1 >> getInput)
-    <~> on "forward" (leaf nop)
-    -- >~< on "list"    (leaf list)
+-- mailboxOpened :: AGGraph () ()
+-- mailboxOpened = graph $
+--   with (westOfHouse  >> getInput)
+--     <~> on "forward" travel3Graph
 
-mailboxOpened :: AGGraph () ()
-mailboxOpened = graph $
-  with (westOfHouse  >> getInput)
-    <~> on "forward" travel3Graph
-
-westOfHouse :: AGGraph () ()
+westOfHouse :: AGGraph (Bool, Bool, Mailbox) ()
 westOfHouse = graph $
-  with westOfHouse'
-    ~> on "open mailbox" mailboxOpened
+  with1 (\x -> westOfHouse' x >> getInput)
+    -- ~> on "open mailbox" mailboxOpened
+    /> leaf nop
 
-game :: AGGraph () (Bool, Mailbox)
-game = graph $ pure (True, mkMailbox) --> westOfHouse
+westOfHouse' :: (Bool, Bool, Mailbox) -> AdventureL ()
+westOfHouse' (showDescr, showMailbox, mailbox) = do
+  printMessage "West of House"
+  when showDescr   $ printMessage "This is an open field west of a white house, with a boarded front door."
+  when showMailbox $ printMessage $ describeObject mailbox
+  when showDescr   $ printMessage "A rubber mat saying 'Welcome to Zork!' lies by the door."
 
-westOfHouse' :: AdventureL ()
-westOfHouse' mailbox = do
-  printMessage "West of House\n"
---  \This is an open field west of a white house, with a boarded front door.\n\
---  \There is a small mailbox here.\n\
---  \A rubber mat saying 'Welcome to Zork!' lies by the door."
+game :: AGGraph () ()
+game = graph $
+  with (pure ("", (True, True, mkMailbox)))
+    -/> westOfHouse
 
 runGame :: IO ()
-runGame = do
-  evalStateT (runGraph' run (== "back") game) inititalState
+runGame = evalStateT (runGraph' run (== "back") game) inititalState
