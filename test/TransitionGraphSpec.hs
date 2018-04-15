@@ -3,45 +3,54 @@
 
 module TransitionGraphSpec where
 
-import           Control.Monad.Writer.Lazy (Writer, runWriter, tell)
+import           Control.Monad.State.Lazy (State, execState, get, modify, put)
 import           Test.Hspec
 
 import           Lib
 
-type TestLang = Writer String
+type TestLang = State String
 
-printString :: String -> TestLang (String, ())
-printString msg = do
-  tell msg
-  pure ("forward", ())
+trackStep :: String -> TestLang (String, ())
+trackStep msg = do
+  modify (++ msg)
+  st <- get
+  pure (st, ())
 
 nop :: TestLang (String, ())
 nop = pure ("", ())
 
-travel3Graph :: Graph TestLang () ()
-travel3Graph = graph $
-  with (printString "3")
-    <~> on "forward" (leaf nop)
+node3 :: Graph TestLang () ()
+node3 = graph $
+  with (trackStep "3")
+    <~> on "forward" (impossibleNode "3")
+    -- No default, should end here.
 
-travel2Graph :: Graph TestLang () ()
-travel2Graph = graph $
-  with (printString "2")
-    <~> on "forward" travel3Graph
+node2 :: Graph TestLang () ()
+node2 = graph $
+  with (trackStep "2")
+    <~> on "01" (impossibleNode "2")
+     /> node3
+    <~> on "0"  (impossibleNode "2")
+     />          impossibleNode "2"
 
-travel1Graph :: Graph TestLang () ()
-travel1Graph = graph $
-  with (printString "1")
-    <~> on "forward" travel2Graph
+node1 :: Graph TestLang () ()
+node1 = graph $
+  with (trackStep "1")
+     /> impossibleNode "1"
+    <~> on "01" node2
+     /> impossibleNode "1"
 
--- Implementation tip:
---      on "forward" travel2Graph :: TransitionTemplate
+node0 :: Graph TestLang () ()
+node0 = graph $
+  with (trackStep "0")
+    -/> node1
 
-travel0Graph :: Graph TestLang () ()
-travel0Graph = graph $
-  with (printString "0")
-    ~~> travel1Graph
+impossibleNode :: String -> Graph TestLang () ()
+impossibleNode n = graph $
+  with (trackStep $ n ++ " impossible")
+    -/> leaf nop
 
 spec = describe "Graph transitions test." $
   it "Test Graph transitions." $ do
-    let (_, result) = runWriter $ runGraph' id (== "back") travel0Graph
+    let result = execState (runGraph' id (== "back") node0) ""
     result `shouldBe` "0123"

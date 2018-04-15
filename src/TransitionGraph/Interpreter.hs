@@ -23,16 +23,32 @@ interpret
 interpret currentEvent (Transition matchEvent transDef next) = do
   transDef' <- get
   case transDef' of
-    NoTransition -> do
+    NoTransition             -> pass
+    PassDefaultForwardOnly _ -> pass
+    PassDefaultBackable    _ -> pass
+    _                        -> pure next
+  where
+    pass = do
       when (matchEvent == currentEvent) (put transDef)
       pure next
-    _ -> pure next
 
-interpret currentEvent (DefaultTransition g next) = do
+interpret currentEvent (PassThroughTransition g next) = do
   transDef' <- get
   case transDef' of
     PassThrough _ -> pure next
     _             -> put (PassThrough g) >> pure next
+
+interpret currentEvent (PassDefaultForwardOnlyTransition g next) = do
+  transDef' <- get
+  case transDef' of
+    NoTransition -> put (PassDefaultForwardOnly g) >> pure next
+    _            -> pure next
+
+interpret currentEvent (PassDefaultBackableTransition g next) = do
+  transDef' <- get
+  case transDef' of
+    NoTransition -> put (PassDefaultBackable g) >> pure next
+    _            -> pure next
 
 runTransitions
   :: Event

@@ -17,6 +17,9 @@ import           Data.Exists
 -- TODO: parametrize this
 type Event = String
 
+-- TODO: parametrize by reaction to unknown event.
+-- TODO: parametrize by stop condition.
+
 type LangOutput a = (Event, a)
 
 data TransitionDef graph
@@ -24,11 +27,15 @@ data TransitionDef graph
   | ForwardOnly graph
   | AutoBack    graph
   | PassThrough graph
+  | PassDefaultForwardOnly graph
+  | PassDefaultBackable    graph
   | NoTransition
 
 data TransitionF lang b o next
-  = Transition        Event (TransitionDef (Graph lang b o)) next
-  | DefaultTransition                      (Graph lang b o)  next
+  = Transition Event (TransitionDef  (Graph lang b o)) next
+  | PassThroughTransition            (Graph lang b o)  next
+  | PassDefaultForwardOnlyTransition (Graph lang b o)  next
+  | PassDefaultBackableTransition    (Graph lang b o)  next
 
 -- This Free monad type is used to hold "list of possible transitions".
 -- Interpreting of it means matching event with events in transitions.
@@ -45,18 +52,24 @@ newtype Graph lang i o
 data TransitionTemplate lang i o = TransitionTemplate Event (Graph lang i o)
 
 instance Functor (TransitionF lang b o) where
-  fmap f (Transition        e transDef next) = Transition        e transDef (f next)
-  fmap f (DefaultTransition g          next) = DefaultTransition g          (f next)
+  fmap f (Transition              e transDef next) = Transition              e transDef (f next)
+  fmap f (PassThroughTransition   g          next) = PassThroughTransition   g          (f next)
+  fmap f (PassDefaultForwardOnlyTransition  g          next) = PassDefaultForwardOnlyTransition  g (f next)
+  fmap f (PassDefaultBackableTransition     g          next) = PassDefaultBackableTransition     g (f next)
 
 (<~>) = transable backable
 (~>)  = transable forwardOnly
 (>~<) = transable autoBack
-(~~>) = defaultTransable passThrough
+(-/>) = defaultTransable passThrough
+(/>)  = defaultTransable passDefaultForwardOnly
+(</>) = defaultTransable passDefaultBackable
 
 infixl 3 <~>
 infixl 3 ~>
 infixl 3 >~<
-infixl 3 ~~>
+infixl 3 -/>
+infixl 3 />
+infixl 3 </>
 
 with1
   :: (Monad lang)
@@ -86,6 +99,8 @@ leaf = leaf1 . const
 
 graph part = part $ pure ()
 
+-- Implementation tip:
+--      on "forward" travel2Graph :: TransitionTemplate
 on
   :: Event
   -> Graph lang i o
@@ -135,4 +150,14 @@ autoBack e g = liftF $ Transition e (AutoBack g) ()
 passThrough
   :: Graph lang i o
   -> Transitions lang i o ()
-passThrough g = liftF $ DefaultTransition g ()
+passThrough g = liftF $ PassThroughTransition g ()
+
+passDefaultForwardOnly
+  :: Graph lang i o
+  -> Transitions lang i o ()
+passDefaultForwardOnly g = liftF $ PassDefaultForwardOnlyTransition g ()
+
+passDefaultBackable
+  :: Graph lang i o
+  -> Transitions lang i o ()
+passDefaultBackable g = liftF $ PassDefaultBackableTransition g ()

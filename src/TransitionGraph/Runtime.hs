@@ -104,6 +104,10 @@ runTransition runtime autoReturn f2 g2 = do
         NoTransition                -> pure Done
         PassThrough g3@(Graph g3Ex) ->
           runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
+        PassDefaultForwardOnly g3@(Graph g3Ex) ->
+          runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
+        PassDefaultBackable g3@(Graph g3Ex) ->
+          runExists (runTransition' runtime thisBackable    thisNotAutoReturn i3) g3Ex
         Backable    g3@(Graph g3Ex) ->
           runExists (runTransition' runtime thisBackable    thisNotAutoReturn i3) g3Ex
         ForwardOnly g3@(Graph g3Ex) ->
