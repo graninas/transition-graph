@@ -4,11 +4,11 @@
 
 module TransitionGraph.Runtime where
 
-import           Control.Monad             (void, when)
-import           Control.Monad.Free        (Free (..), foldFree, liftF)
-import           Control.Monad.State       (State (..), evalState, execState,
-                                            get, put, runState)
-import qualified Control.Monad.Trans.State as ST
+import           Control.Monad               (void, when)
+import           Control.Monad.Free          (Free (..), foldFree, liftF)
+import           Control.Monad.State         (State (..), evalState, execState,
+                                              get, put, runState)
+import qualified Control.Monad.Trans.State   as ST
 
 import           Data.Exists
 
@@ -101,7 +101,9 @@ runTransition runtime autoReturn f2 g2 = do
     else case langResult of
       GoBackward      -> pure Fallback
       GoForward e2 i3 -> case matchTransition e2 g2 of
-        Nop                         -> pure Done
+        NoTransition                -> pure Done
+        PassThrough g3@(Graph g3Ex) ->
+          runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
         Backable    g3@(Graph g3Ex) ->
           runExists (runTransition' runtime thisBackable    thisNotAutoReturn i3) g3Ex
         ForwardOnly g3@(Graph g3Ex) ->

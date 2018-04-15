@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE RankNTypes                #-}
 
-{-# LANGUAGE PartialTypeSignatures                #-}
+{-# LANGUAGE PartialTypeSignatures     #-}
 
 module TransitionGraph.Graph where
 
@@ -23,10 +23,12 @@ data TransitionDef graph
   = Backable    graph
   | ForwardOnly graph
   | AutoBack    graph
-  | Nop
+  | PassThrough graph
+  | NoTransition
 
 data TransitionF lang b o next
-  = Transition Event (TransitionDef (Graph lang b o)) next
+  = Transition        Event (TransitionDef (Graph lang b o)) next
+  | DefaultTransition                      (Graph lang b o)  next
 
 -- This Free monad type is used to hold "list of possible transitions".
 -- Interpreting of it means matching event with events in transitions.
@@ -43,15 +45,18 @@ newtype Graph lang i o
 data TransitionTemplate lang i o = TransitionTemplate Event (Graph lang i o)
 
 instance Functor (TransitionF lang b o) where
-  fmap f (Transition e def next) = Transition e def (f next)
+  fmap f (Transition        e transDef next) = Transition        e transDef (f next)
+  fmap f (DefaultTransition g          next) = DefaultTransition g          (f next)
 
 (<~>) = transable backable
 (~>)  = transable forwardOnly
 (>~<) = transable autoBack
+(~~>) = defaultTransable passThrough
 
 infixl 3 <~>
 infixl 3 ~>
 infixl 3 >~<
+infixl 3 ~~>
 
 with1
   :: (Monad lang)
@@ -88,20 +93,26 @@ on
 on = TransitionTemplate
 
 transable
-  :: (Event
-      -> Graph lang i o
-      -> Free (TransitionF lang i o) b
-      )
+  :: (Event -> Graph lang i o -> Free (TransitionF lang i o) b)
   -> (Free (TransitionF lang i o) b -> c)
   -> TransitionTemplate lang i o
   -> Free (TransitionF lang i o) a
   -> c
+transable transition part (TransitionTemplate e g) nextTransitions = part $ do
+  r <- transition e g
+  nextTransitions
+  pure r
 
-transable transType part (TransitionTemplate e g) = part . transed
-  where
-    transed prevTrans = do
-      prevTrans
-      transType e g
+defaultTransable
+  :: (Graph lang i o -> Free (TransitionF lang i o) b)
+  -> (Free (TransitionF lang i o) b -> c)
+  -> Graph lang i o
+  -> Free (TransitionF lang i o) a
+  -> c
+defaultTransable defaultTransition part g nextTransitions = part $ do
+  r <- defaultTransition g
+  nextTransitions
+  pure r
 
 backable
   :: Event
@@ -120,3 +131,8 @@ autoBack
   -> Graph lang i o
   -> Transitions lang i o ()
 autoBack e g = liftF $ Transition e (AutoBack g) ()
+
+passThrough
+  :: Graph lang i o
+  -> Transitions lang i o ()
+passThrough g = liftF $ DefaultTransition g ()
