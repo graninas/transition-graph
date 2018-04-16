@@ -16,24 +16,6 @@ extra-source-files:
 
 description:         Please see the README on Github at <https://github.com/githubuser/transition-graph#readme>
 
-default-extensions:
-- DeriveFunctor
-- DeriveGeneric
-- FlexibleContexts
-- FlexibleInstances
-- LambdaCase
-- MultiParamTypeClasses
-- NamedFieldPuns
-- NumDecimals
-- OverloadedLabels
-- RankNTypes
-- ScopedTypeVariables
-- TypeFamilies
-- TypeOperators
-- ViewPatterns
-- GADTs
-- FunctionalDependencies
-
 dependencies:
 - base >= 4.7 && < 5
 - free
@@ -58,23 +40,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - transition-graph
-    default-extensions:
-    - DeriveFunctor
-    - DeriveGeneric
-    - FlexibleContexts
-    - FlexibleInstances
-    - LambdaCase
-    - MultiParamTypeClasses
-    - NamedFieldPuns
-    - NumDecimals
-    - OverloadedLabels
-    - RankNTypes
-    - ScopedTypeVariables
-    - TypeFamilies
-    - TypeOperators
-    - ViewPatterns
-    - GADTs
-    - FunctionalDependencies
+
 tests:
   transition-graph-test:
     main:                Spec.hs
