@@ -58,7 +58,23 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - transition-graph
-
+    default-extensions:
+    - DeriveFunctor
+    - DeriveGeneric
+    - FlexibleContexts
+    - FlexibleInstances
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NamedFieldPuns
+    - NumDecimals
+    - OverloadedLabels
+    - RankNTypes
+    - ScopedTypeVariables
+    - TypeFamilies
+    - TypeOperators
+    - ViewPatterns
+    - GADTs
+    - FunctionalDependencies
 tests:
   transition-graph-test:
     main:                Spec.hs

@@ -23,4 +23,4 @@ data Container = Container
   }
   deriving (Generic, ToJSON, FromJSON)
 
-makeLenses ''Container
+makeFieldsNoPrefix ''Container

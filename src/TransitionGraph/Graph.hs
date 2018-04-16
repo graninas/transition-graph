@@ -54,8 +54,8 @@ data TransitionTemplate lang i o = TransitionTemplate Event (Graph lang i o)
 instance Functor (TransitionF lang b o) where
   fmap f (Transition              e transDef next) = Transition              e transDef (f next)
   fmap f (PassThroughTransition   g          next) = PassThroughTransition   g          (f next)
-  fmap f (PassDefaultForwardOnlyTransition  g          next) = PassDefaultForwardOnlyTransition  g (f next)
-  fmap f (PassDefaultBackableTransition     g          next) = PassDefaultBackableTransition     g (f next)
+  fmap f (PassDefaultForwardOnlyTransition g next) = PassDefaultForwardOnlyTransition  g (f next)
+  fmap f (PassDefaultBackableTransition    g next) = PassDefaultBackableTransition     g (f next)
 
 (<~>) = transable backable
 (~>)  = transable forwardOnly
@@ -76,20 +76,20 @@ with1
   => (i -> lang (LangOutput b))
   -> Transitions lang b o ()
   -> Graph lang i o
-with1 flowF1 table = Graph $ mkExists $ GraphF1 flowF1 table
+with1 langF1 table = Graph $ mkExists $ GraphF1 langF1 table
 
 with
   :: (Monad lang)
   => lang (LangOutput b)
   -> Transitions lang b o ()
   -> Graph lang () o
-with flow = with1 (const flow)
+with lang = with1 (const lang)
 
 leaf1
   :: (Monad lang)
   => (i -> lang (LangOutput ()))
   -> Graph lang i ()
-leaf1 flowF1 = with1 flowF1 (pure ())
+leaf1 langF1 = with1 langF1 (pure ())
 
 leaf
   :: (Monad lang)

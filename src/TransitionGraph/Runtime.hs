@@ -22,7 +22,7 @@ data Runtime lang m = Runtime
   , isBackEvent_ :: Event -> Bool
   }
 
-data LangResult a b   = GoForward a b | GoBackward
+data LangResult a b = GoForward a b | GoBackward
 data TransitionResult
   = Fallback
   | AutoFallbackRerun

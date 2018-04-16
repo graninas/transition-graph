@@ -1,20 +1,20 @@
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell       #-}
 
 module AdvGame.Objects where
 
-import           Control.Lens         ((.~), (^.))
-import           Control.Lens.TH      (makeClassy, makeFieldsNoPrefix,
-                                       makeLenses)
-import           Data.Either          (Either)
-import           Data.List            (intercalate)
-import qualified Data.Map             as Map
-import           Data.Maybe           (Maybe (..))
-import           GHC.Generics         (Generic)
-import           Data.Aeson           (FromJSON, ToJSON)
+import           Control.Lens      ((.~), (^.))
+import           Control.Lens.TH   (makeClassy, makeFieldsNoPrefix, makeLenses)
+import           Data.Aeson        (FromJSON, ToJSON)
+import           Data.Either       (Either)
+import           Data.List         (intercalate)
+import qualified Data.Map          as Map
+import           Data.Maybe        (Maybe (..))
+import           GHC.Generics      (Generic)
 
 import           AdvGame.Container
 import           AdvGame.Lang
@@ -52,8 +52,8 @@ mailboxObj = MailboxObj
 
 instance ToObject MailboxType MailboxObj where
   object objSt = Object "mailbox" objSt $ Map.fromList
-    [ ("open mailbox",  Action openContainer  onOpenMailboxSuccess  onMailboxOpenFail  )
-    , ("close mailbox", Action closeContainer onCloseMailboxSuccess onMailboxCloseFail )
+    [ ("open",  Action openContainer  onOpenMailboxSuccess  onMailboxOpenFail  )
+    , ("close", Action closeContainer onCloseMailboxSuccess onMailboxCloseFail )
     ]
 
 onOpenMailboxSuccess :: MailboxObj -> AdventureL ()

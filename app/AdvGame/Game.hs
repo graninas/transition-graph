@@ -30,7 +30,7 @@ westOfHouse = graph $
 westOfHouse' :: (Bool, Bool) -> AdventureL ()
 westOfHouse' (showDescr, showMailbox) = do
   mailbox :: Mailbox <- getObject "mailbox"
-  printMessage "West of House"
+  when showDescr   $ printMessage "West of House"
   when showDescr   $ printMessage "This is an open field west of a white house, with a boarded front door."
   when showMailbox $ printMessage $ describeObject mailbox
   when showDescr   $ printMessage "A rubber mat saying 'Welcome to Zork!' lies by the door."
