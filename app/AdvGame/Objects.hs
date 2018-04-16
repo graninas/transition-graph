@@ -42,7 +42,7 @@ describeObject (Object _ objSt _) = objSt ^. description
 
 ---------- Concrete objects
 
-data MailboxType
+data MailboxType = MailboxType
 type Mailbox = Object MailboxType MailboxObj
 
 mailboxObj = MailboxObj

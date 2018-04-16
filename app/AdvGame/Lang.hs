@@ -32,7 +32,7 @@ data Object objType objSt = Object
   , _actions :: (Actions objSt)
   }
 
-class FromJSON objSt => ToObject objType objSt | objSt -> objType where
+class FromJSON objSt => ToObject objType objSt | objType -> objSt, objSt -> objType where
   object :: objSt -> Object objType objSt
 
 data AdventureLF next where
@@ -41,7 +41,9 @@ data AdventureLF next where
   Put          :: Item    -> next  -> AdventureLF next
   Drop         :: Item    -> next  -> AdventureLF next
   List         ::            next  -> AdventureLF next
+
   GetObj       :: FromJSON a => String -> (a -> next) -> AdventureLF next
+  -- EvalAction   :: String -> Object objType objSt -> AdventureLF next
 
 type AdventureL = Free AdventureLF
 
@@ -51,7 +53,9 @@ instance Functor AdventureLF where
   fmap f (Put          s next)  = Put          s (f next)
   fmap f (Drop         s next)  = Drop         s (f next)
   fmap f (List           next)  = List           (f next)
+
   fmap f (GetObj name    nextF) = GetObj name    (f . nextF)
+  -- fmap f (EvalAction act objName next) = EvalAction act objName (f next)
 
 getUserInput :: AdventureL String
 getUserInput = liftF $ GetUserInput id
@@ -68,6 +72,8 @@ drop s = liftF $ Drop s ()
 list :: AdventureL ()
 list = liftF $ List ()
 
+-- TODO: move to type literals
+
 getObject
   :: (FromJSON objSt, ToObject objType objSt)
   => String
@@ -75,5 +81,13 @@ getObject
 getObject name = do
   objSt <- liftF $ GetObj name id
   pure $ object objSt
+
+getObject'
+  :: (FromJSON objSt, ToObject objType objSt)
+  => objType
+  -> String
+  -> AdventureL (Object objType objSt)
+getObject' _ = getObject
+
 
 makeLenses ''Object

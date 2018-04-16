@@ -6,32 +6,25 @@ import           Control.Monad.Trans.State (evalStateT)
 import qualified Data.ByteString.Char8     as BS
 import qualified Data.Map                  as Map
 
+import           Lib
+
 import           AdvGame.Lang
 import           AdvGame.Objects
 import           AdvGame.Runtime           (run)
 import           AdvGame.Init              (inititalState)
-import           Lib
+import           AdvGame.Interaction
 
 type AGGraph a b = Graph AdventureL a b
 
-getInput :: AdventureL (Event, ())
-getInput = do
-  userInput <- getUserInput
-  pure (userInput, ())
-
-nop :: AdventureL (Event, ())
-nop = pure ("", ())
-
-
--- mailboxOpened :: AGGraph () ()
--- mailboxOpened = graph $
---   with (westOfHouse  >> getInput)
---     <~> on "forward" travel3Graph
+openMailbox :: (Bool, Bool) -> AGGraph () ()
+openMailbox houseView = graph $
+  with (evalAction MailboxType "open" "mailbox" >> inputOnly houseView)
+    -/> westOfHouse
 
 westOfHouse :: AGGraph (Bool, Bool) ()
 westOfHouse = graph $
   with1 (\x -> westOfHouse' x >> getInput)
-    -- ~> on "open mailbox" mailboxOpened
+    ~> on "open mailbox" (openMailbox (False, False))
     /> leaf nop
 
 westOfHouse' :: (Bool, Bool) -> AdventureL ()
@@ -44,7 +37,7 @@ westOfHouse' (showDescr, showMailbox) = do
 
 game :: AGGraph () ()
 game = graph $
-  with (pure ("", (True, True)))
+  with (inputOnly (True, True))
     -/> westOfHouse
 
 runGame :: IO ()
