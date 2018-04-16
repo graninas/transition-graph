@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE TemplateHaskell       #-}
 
 module AdvGame.Objects where
@@ -11,19 +13,19 @@ import           Data.Either          (Either)
 import           Data.List            (intercalate)
 import qualified Data.Map             as Map
 import           Data.Maybe           (Maybe (..))
+import           GHC.Generics         (Generic)
+import           Data.Aeson           (FromJSON, ToJSON)
 
 import           AdvGame.Container
-import           AdvGame.Interactable
 import           AdvGame.Lang
-
 
 data MailboxObj = MailboxObj
   { _description :: String
   , _container   :: Container
   }
+  deriving (Generic, ToJSON, FromJSON)
 
 makeFieldsNoPrefix ''MailboxObj
-
 
 openContainer :: HasContainer obj Container => obj -> Maybe obj
 openContainer obj = case obj ^. container.state of
@@ -35,19 +37,24 @@ closeContainer obj = case obj ^. container.state of
   Closed -> Nothing
   Opened -> Just $ container.state .~ Closed $ obj
 
+describeObject :: HasDescription objSt String => Object objType objSt -> String
+describeObject (Object _ objSt _) = objSt ^. description
 
-type Mailbox = Object MailboxObj
+---------- Concrete objects
+
+data MailboxType
+type Mailbox = Object MailboxType MailboxObj
 
 mailboxObj = MailboxObj
   { _description = "This is a small mailbox."
   , _container = Container Closed ["leaflet"]
   }
 
-mkMailbox :: Mailbox
-mkMailbox = Object "mailbox" mailboxObj $ Map.fromList
-  [ ("open mailbox",  Action openContainer  onOpenMailboxSuccess  onMailboxOpenFail  )
-  , ("close mailbox", Action closeContainer onCloseMailboxSuccess onMailboxCloseFail )
-  ]
+instance ToObject MailboxType MailboxObj where
+  object objSt = Object "mailbox" objSt $ Map.fromList
+    [ ("open mailbox",  Action openContainer  onOpenMailboxSuccess  onMailboxOpenFail  )
+    , ("close mailbox", Action closeContainer onCloseMailboxSuccess onMailboxCloseFail )
+    ]
 
 onOpenMailboxSuccess :: MailboxObj -> AdventureL ()
 onOpenMailboxSuccess mailbox = case mailbox ^. container.items of
@@ -62,9 +69,3 @@ onCloseMailboxSuccess _ = printMessage "Closed."
 
 onMailboxCloseFail :: MailboxObj -> AdventureL ()
 onMailboxCloseFail _ = printMessage "Mailbox already closed."
-
-
-
-
-describeObject :: HasDescription obj String => Object obj -> String
-describeObject (Object _ obj _) = obj ^. description

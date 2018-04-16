@@ -43,6 +43,7 @@ dependencies:
 - hspec
 - containers
 - lens
+- aeson
 
 library:
   source-dirs: src

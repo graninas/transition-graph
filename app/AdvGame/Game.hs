@@ -8,7 +8,8 @@ import qualified Data.Map                  as Map
 
 import           AdvGame.Lang
 import           AdvGame.Objects
-import           AdvGame.Runtime           (inititalState, run)
+import           AdvGame.Runtime           (run)
+import           AdvGame.Init              (inititalState)
 import           Lib
 
 type AGGraph a b = Graph AdventureL a b
@@ -27,14 +28,15 @@ nop = pure ("", ())
 --   with (westOfHouse  >> getInput)
 --     <~> on "forward" travel3Graph
 
-westOfHouse :: AGGraph (Bool, Bool, Mailbox) ()
+westOfHouse :: AGGraph (Bool, Bool) ()
 westOfHouse = graph $
   with1 (\x -> westOfHouse' x >> getInput)
     -- ~> on "open mailbox" mailboxOpened
     /> leaf nop
 
-westOfHouse' :: (Bool, Bool, Mailbox) -> AdventureL ()
-westOfHouse' (showDescr, showMailbox, mailbox) = do
+westOfHouse' :: (Bool, Bool) -> AdventureL ()
+westOfHouse' (showDescr, showMailbox) = do
+  mailbox :: Mailbox <- getObject "mailbox"
   printMessage "West of House"
   when showDescr   $ printMessage "This is an open field west of a white house, with a boarded front door."
   when showMailbox $ printMessage $ describeObject mailbox
@@ -42,7 +44,7 @@ westOfHouse' (showDescr, showMailbox, mailbox) = do
 
 game :: AGGraph () ()
 game = graph $
-  with (pure ("", (True, True, mkMailbox)))
+  with (pure ("", (True, True)))
     -/> westOfHouse
 
 runGame :: IO ()
