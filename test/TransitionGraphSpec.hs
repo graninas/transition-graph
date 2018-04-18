@@ -6,7 +6,7 @@ module TransitionGraphSpec where
 import           Control.Monad.State.Lazy (State, execState, get, modify, put)
 import           Test.Hspec
 
-import           Lib
+import           TransitionGraph
 
 type TestLang = State String
 
