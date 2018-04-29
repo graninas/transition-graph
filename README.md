@@ -23,32 +23,4 @@ Library provides several different transitions:
 
 Currently, event is `String`, but this can be generalized in the future versions.
 
-Sample
-------
-
-```haskell
-
-location :: String -> IO (Event, ())
-location name = do
-  putStrLn name
-  input <- getLine
-  pure (input, ())
-
-northOfHouse :: Graph IO () ()
-northOfHouse = graph $
-  with (location "North of House")
-     ~> on "go west" westOfHouse
-     /> northOfHouse                -- default case
-
-
-westOfHouse :: Graph IO () ()
-westOfHouse = graph $
-  with (location "West of House")
-     ~> on "go north" northOfHouse
-     /> westOfHouse                 -- default case
-
-
-main = runGraph' id (== "back") westOfHouse
-
-```
-
+For sample, see (Hinteractive)[https://github.com/graninas/hinteractive]: an interactive fiction game engine.

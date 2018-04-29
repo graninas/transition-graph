@@ -10,8 +10,6 @@ import           Control.Monad.Free    (Free (..), foldFree, liftF)
 import           Control.Monad.State   (State (..), evalState, execState, get,
                                         put, runState)
 
-import           Data.Exists
-
 import           TransitionGraph.Graph
 
 data SelectedTransition lang i where

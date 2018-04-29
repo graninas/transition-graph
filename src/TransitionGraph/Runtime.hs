@@ -10,8 +10,6 @@ import           Control.Monad.State         (State (..), evalState, execState,
                                               get, put, runState)
 import qualified Control.Monad.Trans.State   as ST
 
-import           Data.Exists
-
 import           TransitionGraph.Graph
 import           TransitionGraph.Interpreter
 
