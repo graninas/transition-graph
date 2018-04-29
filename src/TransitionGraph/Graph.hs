@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE RankNTypes                #-}
 
 {-# LANGUAGE PartialTypeSignatures     #-}
@@ -12,8 +13,6 @@ import           Control.Monad.State       (State (..), evalState, execState,
                                             get, put, runState)
 import qualified Control.Monad.Trans.State as ST
 
-import           Data.Exists
-
 -- TODO: parametrize this
 type Event = String
 
@@ -22,40 +21,32 @@ type Event = String
 
 type LangOutput a = (Event, a)
 
-data TransitionDef graph
-  = Backable    graph
-  | ForwardOnly graph
-  | AutoBack    graph
-  | PassThrough graph
-  | PassDefaultForwardOnly graph
-  | PassDefaultBackable    graph
-  | NoTransition
+data TransActivation
+  = ByEvent Event
+  | ByDefault
+  | PassThrough
 
-data TransitionF lang b o next
-  = Transition Event (TransitionDef  (Graph lang b o)) next
-  | PassThroughTransition            (Graph lang b o)  next
-  | PassDefaultForwardOnlyTransition (Graph lang b o)  next
-  | PassDefaultBackableTransition    (Graph lang b o)  next
+data TransType
+  = Backable
+  | ForwardOnly
+  | AutoBack
+
+data TransitionF lang i next
+  = TransitionF TransType TransActivation (Graph lang i) next
 
 -- This Free monad type is used to hold "list of possible transitions".
 -- Interpreting of it means matching event with events in transitions.
 -- This is definitely an overkill. Using Map will be more effective and
 -- intuitive.
-type Transitions lang b o u = Free (TransitionF lang b o) u
+type Transitions lang i u = Free (TransitionF lang i) u
 
-data GraphF lang i o b
-  = GraphF1 (i -> lang (LangOutput b)) (Transitions lang b o ())
+data Graph lang i where
+  Graph :: (i -> lang (LangOutput o)) -> Transitions lang o () -> Graph lang i
 
-newtype Graph lang i o
-  = Graph (Exists (GraphF lang i o))
+data TransitionTemplate lang i = TransitionTemplate Event (Graph lang i)
 
-data TransitionTemplate lang i o = TransitionTemplate Event (Graph lang i o)
-
-instance Functor (TransitionF lang b o) where
-  fmap f (Transition              e transDef next) = Transition              e transDef (f next)
-  fmap f (PassThroughTransition   g          next) = PassThroughTransition   g          (f next)
-  fmap f (PassDefaultForwardOnlyTransition g next) = PassDefaultForwardOnlyTransition  g (f next)
-  fmap f (PassDefaultBackableTransition    g next) = PassDefaultBackableTransition     g (f next)
+instance Functor (TransitionF lang i) where
+  fmap f (TransitionF t me g next) = TransitionF t me g (f next)
 
 (<~>) = transable backable
 (~>)  = transable forwardOnly
@@ -74,27 +65,27 @@ infixl 3 </>
 with1
   :: (Monad lang)
   => (i -> lang (LangOutput b))
-  -> Transitions lang b o ()
-  -> Graph lang i o
-with1 langF1 table = Graph $ mkExists $ GraphF1 langF1 table
+  -> Transitions lang b ()
+  -> Graph lang i
+with1 = Graph
 
 with
   :: (Monad lang)
   => lang (LangOutput b)
-  -> Transitions lang b o ()
-  -> Graph lang () o
+  -> Transitions lang b ()
+  -> Graph lang ()
 with lang = with1 (const lang)
 
 leaf1
   :: (Monad lang)
   => (i -> lang (LangOutput ()))
-  -> Graph lang i ()
+  -> Graph lang i
 leaf1 langF1 = with1 langF1 (pure ())
 
 leaf
   :: (Monad lang)
   => lang (LangOutput ())
-  -> Graph lang () ()
+  -> Graph lang ()
 leaf = leaf1 . const
 
 graph part = part $ pure ()
@@ -103,15 +94,15 @@ graph part = part $ pure ()
 --      on "forward" travel2Graph :: TransitionTemplate
 on
   :: Event
-  -> Graph lang i o
-  -> TransitionTemplate lang i o
+  -> Graph lang i
+  -> TransitionTemplate lang i
 on = TransitionTemplate
 
 transable
-  :: (Event -> Graph lang i o -> Free (TransitionF lang i o) b)
-  -> (Free (TransitionF lang i o) b -> c)
-  -> TransitionTemplate lang i o
-  -> Free (TransitionF lang i o) a
+  :: (Event -> Graph lang i -> Free (TransitionF lang i) b)
+  -> (Free (TransitionF lang i) b -> c)
+  -> TransitionTemplate lang i
+  -> Free (TransitionF lang i) a
   -> c
 transable transition part (TransitionTemplate e g) nextTransitions = part $ do
   r <- transition e g
@@ -119,10 +110,10 @@ transable transition part (TransitionTemplate e g) nextTransitions = part $ do
   pure r
 
 defaultTransable
-  :: (Graph lang i o -> Free (TransitionF lang i o) b)
-  -> (Free (TransitionF lang i o) b -> c)
-  -> Graph lang i o
-  -> Free (TransitionF lang i o) a
+  :: (Graph lang i -> Free (TransitionF lang i) b)
+  -> (Free (TransitionF lang i) b -> c)
+  -> Graph lang i
+  -> Free (TransitionF lang i) a
   -> c
 defaultTransable defaultTransition part g nextTransitions = part $ do
   r <- defaultTransition g
@@ -131,33 +122,33 @@ defaultTransable defaultTransition part g nextTransitions = part $ do
 
 backable
   :: Event
-  -> Graph lang i o
-  -> Transitions lang i o ()
-backable e g = liftF $ Transition e (Backable g) ()
+  -> Graph lang i
+  -> Transitions lang i ()
+backable e g = liftF $ TransitionF Backable (ByEvent e) g ()
 
 forwardOnly
   :: Event
-  -> Graph lang i o
-  -> Transitions lang i o ()
-forwardOnly e g = liftF $ Transition e (ForwardOnly g) ()
+  -> Graph lang i
+  -> Transitions lang i ()
+forwardOnly e g = liftF $ TransitionF ForwardOnly (ByEvent e) g ()
 
 autoBack
   :: Event
-  -> Graph lang i o
-  -> Transitions lang i o ()
-autoBack e g = liftF $ Transition e (AutoBack g) ()
+  -> Graph lang i
+  -> Transitions lang i ()
+autoBack e g = liftF $ TransitionF AutoBack (ByEvent e) g ()
 
 passThrough
-  :: Graph lang i o
-  -> Transitions lang i o ()
-passThrough g = liftF $ PassThroughTransition g ()
+  :: Graph lang i
+  -> Transitions lang i ()
+passThrough g = liftF $ TransitionF ForwardOnly PassThrough g ()
 
 passDefaultForwardOnly
-  :: Graph lang i o
-  -> Transitions lang i o ()
-passDefaultForwardOnly g = liftF $ PassDefaultForwardOnlyTransition g ()
+  :: Graph lang i
+  -> Transitions lang i ()
+passDefaultForwardOnly g = liftF $ TransitionF ForwardOnly ByDefault g ()
 
 passDefaultBackable
-  :: Graph lang i o
-  -> Transitions lang i o ()
-passDefaultBackable g = liftF $ PassDefaultBackableTransition g ()
+  :: Graph lang i
+  -> Transitions lang i ()
+passDefaultBackable g = liftF $ TransitionF Backable ByDefault g ()

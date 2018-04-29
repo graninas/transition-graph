@@ -40,12 +40,6 @@ runLang (Runtime runLang isBackEvent) lang = do
     then pure GoBackward
     else pure $ GoForward e i
 
-getLang
-  :: i
-  -> GraphF lang i o b
-  -> lang (LangOutput b)
-getLang input (GraphF1 lang _) = lang input
-
 newtype ThisBackable = ThisBackable Bool
 newtype AutoReturn   = AutoReturn Bool
 
@@ -73,15 +67,15 @@ runTransition'
   -> ThisBackable
   -> AutoReturn
   -> i
-  -> GraphF lang i o b
+  -> Graph lang i
   -> m TransitionResult
-runTransition' runtime backable autoReturn i3 g3 = do
-  let f3 = getLang i3 g3
-  transitionResult <- runTransition runtime autoReturn f3 g3
+runTransition' runtime backable autoReturn i g@(Graph langF ts) = do
+  let lang = langF i
+  transitionResult <- runTransition runtime autoReturn lang ts
   case transitionResult of
     Done              -> pure Done
     AutoFallbackRerun -> pure FallbackRerun
-    FallbackRerun     -> runTransition' runtime backable thisNotAutoReturn i3 g3
+    FallbackRerun     -> runTransition' runtime backable thisNotAutoReturn i g
     Fallback          ->
       if isBackable backable
       then pure FallbackRerun
@@ -91,43 +85,33 @@ runTransition
   :: (Monad m, Monad lang)
   => Runtime lang m
   -> AutoReturn
-  -> lang (LangOutput b)
-  -> GraphF lang i o b
+  -> lang (LangOutput o)
+  -> Transitions lang o ()
   -> m TransitionResult
-runTransition runtime autoReturn f2 g2 = do
-  langResult <- runLang runtime f2
+runTransition runtime autoReturn lang ts = do
+  langResult <- runLang runtime lang
   if isAutoReturn autoReturn
     then pure AutoFallbackRerun
     else case langResult of
-      GoBackward      -> pure Fallback
-      GoForward e2 i3 -> case matchTransition e2 g2 of
-        NoTransition                -> pure Done
-        PassThrough g3@(Graph g3Ex) ->
-          runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
-        PassDefaultForwardOnly g3@(Graph g3Ex) ->
-          runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
-        PassDefaultBackable g3@(Graph g3Ex) ->
-          runExists (runTransition' runtime thisBackable    thisNotAutoReturn i3) g3Ex
-        Backable    g3@(Graph g3Ex) ->
-          runExists (runTransition' runtime thisBackable    thisNotAutoReturn i3) g3Ex
-        ForwardOnly g3@(Graph g3Ex) ->
-          runExists (runTransition' runtime thisNotBackable thisNotAutoReturn i3) g3Ex
-        AutoBack    g3@(Graph g3Ex) ->
-          runExists (runTransition' runtime thisBackable    thisAutoReturn    i3) g3Ex
+      GoBackward                     -> pure Fallback
+      GoForward langEvent langOutput -> case selectTransition langEvent ts of
+        NotSelected                     -> pure Done
+        Selected _ PassThrough subGraph -> runTransition' runtime thisNotBackable thisNotAutoReturn langOutput subGraph
+        Selected ForwardOnly _ subGraph -> runTransition' runtime thisNotBackable thisNotAutoReturn langOutput subGraph
+        Selected Backable    _ subGraph -> runTransition' runtime thisBackable    thisNotAutoReturn langOutput subGraph
+        Selected AutoBack    _ subGraph -> runTransition' runtime thisBackable    thisAutoReturn    langOutput subGraph
 
 runGraph'
   :: (Monad m, Monad lang)
   => Runner lang m
   -> (Event -> Bool)
-  -> Graph lang () ()
+  -> Graph lang ()
   -> m ()
-runGraph' runner isBackEv g = runGraph (Runtime runner isBackEv) g
+runGraph' runner isBackEv = runGraph (Runtime runner isBackEv)
 
 runGraph
   :: (Monad m, Monad lang)
   => Runtime lang m
-  -> Graph lang () ()
+  -> Graph lang ()
   -> m ()
-runGraph runtime (Graph ex) = do
-  _ <- runExists (runTransition' runtime thisNotBackable thisNotAutoReturn ()) ex
-  pure ()
+runGraph runtime g = void $ runTransition' runtime thisNotBackable thisNotAutoReturn () g

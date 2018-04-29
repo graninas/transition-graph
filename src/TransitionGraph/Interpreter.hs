@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE RankNTypes                #-}
 
 module TransitionGraph.Interpreter where
@@ -13,51 +14,44 @@ import           Data.Exists
 
 import           TransitionGraph.Graph
 
-type Interpreter graph b = State (TransitionDef graph) b
+data SelectedTransition lang i where
+  Selected    :: TransType -> TransActivation -> Graph lang i -> SelectedTransition lang i
+  NotSelected :: SelectedTransition lang i
 
 interpret
   :: Event
-  -> TransitionF lang b o u
-  -> Interpreter (Graph lang b o) u
+  -> TransitionF lang i s
+  -> State (SelectedTransition lang i) s
 
-interpret currentEvent (Transition matchEvent transDef next) = do
-  transDef' <- get
-  case transDef' of
-    NoTransition             -> pass
-    PassDefaultForwardOnly _ -> pass
-    PassDefaultBackable    _ -> pass
-    _                        -> pure next
+interpret currentEvent (TransitionF tt act@(ByEvent matchEvent) g next) = do
+  selected <- get
+  case selected of
+    NotSelected            -> trySelect
+    Selected _ ByDefault _ -> trySelect
+    _                      -> pure next
   where
-    pass = do
-      when (matchEvent == currentEvent) (put transDef)
+    trySelect = do
+      when (matchEvent == currentEvent) (put $ Selected tt act g)
       pure next
 
-interpret currentEvent (PassThroughTransition g next) = do
-  transDef' <- get
-  case transDef' of
-    PassThrough _ -> pure next
-    _             -> put (PassThrough g) >> pure next
+interpret currentEvent (TransitionF tt PassThrough g next) = do
+  put $ Selected tt PassThrough g
+  pure next
 
-interpret currentEvent (PassDefaultForwardOnlyTransition g next) = do
-  transDef' <- get
-  case transDef' of
-    NoTransition -> put (PassDefaultForwardOnly g) >> pure next
-    _            -> pure next
-
-interpret currentEvent (PassDefaultBackableTransition g next) = do
-  transDef' <- get
-  case transDef' of
-    NoTransition -> put (PassDefaultBackable g) >> pure next
-    _            -> pure next
+interpret currentEvent (TransitionF tt ByDefault g next) = do
+  selected <- get
+  case selected of
+    NotSelected -> put (Selected tt ByDefault g) >> pure next
+    _           -> pure next
 
 runTransitions
   :: Event
-  -> Transitions lang b o s
-  -> Interpreter (Graph lang b o) s
+  -> Transitions lang i s
+  -> State (SelectedTransition lang i) s
 runTransitions e = foldFree (interpret e)
 
-matchTransition
+selectTransition
   :: Event
-  -> GraphF lang i o b
-  -> TransitionDef (Graph lang b o)
-matchTransition e (GraphF1 _ t) = execState (runTransitions e t) NoTransition
+  -> Transitions lang i s
+  -> SelectedTransition lang i
+selectTransition e ts = execState (runTransitions e ts) NotSelected

@@ -19,13 +19,13 @@ trackStep msg = do
 nop :: TestLang (String, ())
 nop = pure ("", ())
 
-node3 :: Graph TestLang () ()
+node3 :: Graph TestLang ()
 node3 = graph $
   with (trackStep "3")
     <~> on "forward" (impossibleNode "3")
     -- No default, should end here.
 
-node2 :: Graph TestLang () ()
+node2 :: Graph TestLang ()
 node2 = graph $
   with (trackStep "2")
     <~> on "01" (impossibleNode "2")
@@ -33,19 +33,19 @@ node2 = graph $
     <~> on "0"  (impossibleNode "2")
      />          impossibleNode "2"
 
-node1 :: Graph TestLang () ()
+node1 :: Graph TestLang ()
 node1 = graph $
   with (trackStep "1")
      /> impossibleNode "1"
     <~> on "01" node2
      /> impossibleNode "1"
 
-node0 :: Graph TestLang () ()
+node0 :: Graph TestLang ()
 node0 = graph $
   with (trackStep "0")
     -/> node1
 
-impossibleNode :: String -> Graph TestLang () ()
+impossibleNode :: String -> Graph TestLang ()
 impossibleNode n = graph $
   with (trackStep $ n ++ " impossible")
     -/> leaf nop
