@@ -1,0 +1,90 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: d1c29fa3a0599d58d9065e54c9c31f9ef4ff6a207bcd4e945162058a08e023b0
+
+name:           transition-graph
+version:        0.1.0.0
+description:    Please see the README on Github at <https://github.com/githubuser/transition-graph#readme>
+homepage:       https://github.com/githubuser/transition-graph#readme
+bug-reports:    https://github.com/githubuser/transition-graph/issues
+author:         Alexander Granin
+maintainer:     graninas@gmail.com
+copyright:      2018 Alexander Granin
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/transition-graph
+
+library
+  exposed-modules:
+      TransitionGraph
+      TransitionGraph.Graph
+      TransitionGraph.Interpreter
+      TransitionGraph.Runtime
+  other-modules:
+      Paths_transition_graph
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , free
+    , hspec
+    , lens
+    , mtl
+    , transformers
+  default-language: Haskell2010
+
+executable transition-graph-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_transition_graph
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , free
+    , hspec
+    , lens
+    , mtl
+    , transformers
+    , transition-graph
+  default-language: Haskell2010
+
+test-suite transition-graph-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      TransitionGraphSpec
+      Paths_transition_graph
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , free
+    , hspec
+    , lens
+    , mtl
+    , transformers
+    , transition-graph
+  default-language: Haskell2010
